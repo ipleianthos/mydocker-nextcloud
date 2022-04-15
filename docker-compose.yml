@@ -1,14 +1,38 @@
 version: '3'
-services:
+
+volumes:
   nextcloud:
-    # Download Nextcloud image.
-    image: nextcloud:${NEXTCLOUD_VERSION}
+  db:
+
+services
+
+  db:
+    image: mariadb
     # Environment file path.
-    env_file: ./env/nextcloud.env
+    env_file: ./env/db.env
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     volumes:
-      - nextcloud:/var/www/html
-      - ./app/config:/var/www/html/config
-      - ./app/custom_apps:/var/www/html/custom_apps
-      - ./app/data:/var/www/html/data
-      - ./app/themes:/var/www/html/themes
-      - /etc/localtime:/etc/localtime:ro
+      - ~/docker-nextcloud/db:/var/lib/mysql
+
+  app:
+    image: nextcloud:fpm
+    # Environment file path.
+    env_file: ./env/app.env
+    restart: always
+    links:
+      - db
+    volumes:
+      - ~/docker-nextcloud/nextcloud:/var/www/html
+
+  web:
+    image: nginx
+    restart: always
+    ports:
+      - ${PORT}:80
+    links:
+      - app
+    volumes:
+      - ~/docker-nextcloud/nginx.conf:/etc/nginx/nginx.conf:ro
+    volumes_from:
+      - app
